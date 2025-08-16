@@ -1,6 +1,6 @@
--- ⚡ Auto Summit SUPER BRUTAL by Ganesha Exploit
--- Teleport spam 2x (delay 0.010 detik)
--- Touch spam 3x (anti miss tapi lebih cepat)
+-- ⚡ Auto Summit BRUTAL EDIT (TP 2x, Touch 3x)
+-- Teleport spam 2x (delay 0.0001 detik)
+-- Touch spam 3x (super brutal)
 
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
@@ -32,7 +32,7 @@ end
 
 --=== Cari part checkpoint real ===--
 local function getClosestPart(targetPos)
-    local range, closest, dist = 20
+    local range, closest, dist = 30
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and (obj.Position - targetPos).Magnitude < range then
             local d = (obj.Position - targetPos).Magnitude
@@ -44,29 +44,33 @@ local function getClosestPart(targetPos)
     return closest
 end
 
---=== Brutal Teleport ===--
+--=== Brutal Teleport (2x TP + 3x Touch) ===--
 local function brutalTeleport(hrp, targetPos)
     if not hrp then return end
 
-    -- Teleport spam 2x dengan delay 0.010 detik
+    -- Teleport spam 2x
     for i = 1, 2 do
         local offset = Vector3.new(math.random(-2,2), math.random(0,2), math.random(-2,2))
         hrp.CFrame = CFrame.new(targetPos + offset)
-        task.wait(0.010)
+        task.wait(0.0001) -- << super brutal
     end
 
-    -- Posisi fix di checkpoint
+    -- Posisi fix
     hrp.CFrame = CFrame.new(targetPos)
+    task.wait(0.0001)
 
-    -- Spam sentuhan checkpoint 3x (anti miss tapi lebih ringan)
+    -- Touch spam 3x
     local cpPart = getClosestPart(targetPos)
     if cpPart then
         for i = 1, 3 do
             firetouchinterest(hrp, cpPart, 0)
             firetouchinterest(hrp, cpPart, 1)
-            task.wait(0.010)
+            task.wait(0.0001) -- << super brutal
         end
     end
+
+    -- Fix ulang posisi
+    hrp.CFrame = CFrame.new(targetPos)
 end
 
 --=== Variabel kontrol ===--
@@ -86,15 +90,15 @@ task.spawn(function()
                 brutalTeleport(hrp, pos)
 
                 if i == #checkpoints then
-                    task.wait(3) -- delay summit terakhir
-                    hum.Health = 0 -- auto reset
+                    task.wait(1)
+                    hum.Health = 0
                     player.CharacterAdded:Wait():WaitForChild("HumanoidRootPart")
                     loopCount += 1
-                    notify("✅ Loop #" .. loopCount .. " selesai")
+                    notify("✅ Loop #" .. loopCount .. " selesai (Summit Terdeteksi)")
                 end
             end
         end
-        task.wait(0.01)
+        task.wait(0.0001)
     end
 end)
 
@@ -135,7 +139,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     if autoSummitEnabled then
         ToggleButton.Text = "Auto Summit: ON"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 85)
-        notify("⚡ Auto Summit Aktif (Delay 0.010s, Spam Teleport 2x, Touch 3x)")
+        notify("⚡ Auto Summit Aktif (TP 2x, Touch 3x, Delay 0.0001s)")
     else
         ToggleButton.Text = "Auto Summit: OFF"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
