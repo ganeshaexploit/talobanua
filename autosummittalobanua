@@ -1,11 +1,13 @@
--- ServerScriptService/CheckpointServer.server.lua
--- Checkpoint anti-miss untuk game milikmu (server-authoritative)
+-- ⚡ Auto Summit SUPER BRUTAL by Ganesha Exploit
+-- Teleport spam 2x (delay 0.010 detik)
+-- Touch spam 3x (anti miss tapi lebih cepat)
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local player = Players.LocalPlayer
 
--- Koordinat checkpoint
-local COORDS = {
+--=== Checkpoints ===--
+local checkpoints = {
     Vector3.new(-739.06, 23.46, 582.03),
     Vector3.new(11.84, 235.38, -211.59),
     Vector3.new(-272.35, 441.51, 1138.29),
@@ -17,94 +19,126 @@ local COORDS = {
     Vector3.new(-3650.31, 5058.53, 3694.24)
 }
 
--- Buat folder & part checkpoint (trigger)
-local folder = Instance.new("Folder")
-folder.Name = "Checkpoints"
-folder.Parent = workspace
-
-local Pads = {}
-for i, pos in ipairs(COORDS) do
-    local p = Instance.new("Part")
-    p.Name = ("Checkpoint_%d"):format(i)
-    p.Size = Vector3.new(12, 12, 12)     -- cukup besar biar mudah kena
-    p.Transparency = 1                    -- tak terlihat
-    p.Anchored = true
-    p.CanCollide = false
-    p.CanTouch = true
-    p.CFrame = CFrame.new(pos)
-    p.Parent = folder
-
-    Pads[i] = p
-end
-
--- Debounce per pemain per checkpoint
-local touchedOnce = {} -- [player] = { [index] = true }
-
-local function getPlayerFromPart(part)
-    if not part then return nil end
-    local model = part:FindFirstAncestorOfClass("Model")
-    if not model then return nil end
-    local hum = model:FindFirstChildOfClass("Humanoid")
-    if not hum then return nil end
-    return Players:GetPlayerFromCharacter(model)
-end
-
-local function setCheckpoint(plr, index)
-    if not plr then return end
-    if not touchedOnce[plr] then touchedOnce[plr] = {} end
-    if touchedOnce[plr][index] then return end  -- sudah dihitung
-
-    -- Simpan progres pemain (leaderstats opsional)
-    plr:SetAttribute("CheckpointIndex", index)
-    touchedOnce[plr][index] = true
-end
-
--- Touched handler
-for idx, pad in ipairs(Pads) do
-    pad.Touched:Connect(function(hit)
-        local plr = getPlayerFromPart(hit)
-        if plr then
-            setCheckpoint(plr, idx)
-        end
+--=== Notifikasi ===--
+local function notify(msg)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "Auto Summit by Ganesha Exploit",
+            Text = msg,
+            Duration = 3
+        })
     end)
 end
 
--- Radius check berkala (backup kalau Touched miss)
-local CHECK_RADIUS = 8         -- stud
-local HEARTBEAT_DT = 0.1       -- detik
+--=== Cari part checkpoint real ===--
+local function getClosestPart(targetPos)
+    local range, closest, dist = 20
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and (obj.Position - targetPos).Magnitude < range then
+            local d = (obj.Position - targetPos).Magnitude
+            if not dist or d < dist then
+                closest, dist = obj, d
+            end
+        end
+    end
+    return closest
+end
 
+--=== Brutal Teleport ===--
+local function brutalTeleport(hrp, targetPos)
+    if not hrp then return end
+
+    -- Teleport spam 2x dengan delay 0.010 detik
+    for i = 1, 2 do
+        local offset = Vector3.new(math.random(-2,2), math.random(0,2), math.random(-2,2))
+        hrp.CFrame = CFrame.new(targetPos + offset)
+        task.wait(0.010)
+    end
+
+    -- Posisi fix di checkpoint
+    hrp.CFrame = CFrame.new(targetPos)
+
+    -- Spam sentuhan checkpoint 3x (anti miss tapi lebih ringan)
+    local cpPart = getClosestPart(targetPos)
+    if cpPart then
+        for i = 1, 3 do
+            firetouchinterest(hrp, cpPart, 0)
+            firetouchinterest(hrp, cpPart, 1)
+            task.wait(0.010)
+        end
+    end
+end
+
+--=== Variabel kontrol ===--
+local autoSummitEnabled = false
+local loopCount = 0
+
+--=== Loop utama ===--
 task.spawn(function()
     while true do
-        for _, plr in ipairs(Players:GetPlayers()) do
-            local char = plr.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                -- Deteksi checkpoint terdekat dalam radius
-                for idx, pos in ipairs(COORDS) do
-                    if (hrp.Position - pos).Magnitude <= CHECK_RADIUS then
-                        setCheckpoint(plr, idx)
-                    end
+        if autoSummitEnabled then
+            local char = player.Character or player.CharacterAdded:Wait()
+            local hrp = char:WaitForChild("HumanoidRootPart")
+            local hum = char:WaitForChild("Humanoid")
+
+            for i, pos in ipairs(checkpoints) do
+                if not autoSummitEnabled then break end
+                brutalTeleport(hrp, pos)
+
+                if i == #checkpoints then
+                    task.wait(3) -- delay summit terakhir
+                    hum.Health = 0 -- auto reset
+                    player.CharacterAdded:Wait():WaitForChild("HumanoidRootPart")
+                    loopCount += 1
+                    notify("✅ Loop #" .. loopCount .. " selesai")
                 end
             end
         end
-        task.wait(HEARTBEAT_DT)
+        task.wait(0.01)
     end
 end)
 
--- (Opsional) bikin leaderstats untuk memantau di UI
-Players.PlayerAdded:Connect(function(plr)
-    local ls = Instance.new("Folder")
-    ls.Name = "leaderstats"
-    ls.Parent = plr
+--=== UI Modern ===--
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local ToggleButton = Instance.new("TextButton")
 
-    local cp = Instance.new("IntValue")
-    cp.Name = "Checkpoint"
-    cp.Parent = ls
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    plr:GetAttributeChangedSignal("CheckpointIndex"):Connect(function()
-        local v = plr:GetAttribute("CheckpointIndex")
-        if typeof(v) == "number" then
-            cp.Value = v
-        end
-    end)
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Frame.BackgroundTransparency = 0.2
+Frame.BorderSizePixel = 0
+Frame.Position = UDim2.new(0.05, 0, 0.2, 0)
+Frame.Size = UDim2.new(0, 180, 0, 60)
+Frame.Active = true
+Frame.Draggable = true
+
+local UICorner = Instance.new("UICorner", Frame)
+UICorner.CornerRadius = UDim.new(0, 12)
+
+ToggleButton.Parent = Frame
+ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleButton.Size = UDim2.new(1, -10, 1, -10)
+ToggleButton.Position = UDim2.new(0, 5, 0, 5)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Text = "Auto Summit: OFF"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 16
+
+local UICornerBtn = Instance.new("UICorner", ToggleButton)
+UICornerBtn.CornerRadius = UDim.new(0, 10)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    autoSummitEnabled = not autoSummitEnabled
+    if autoSummitEnabled then
+        ToggleButton.Text = "Auto Summit: ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 85)
+        notify("⚡ Auto Summit Aktif (Delay 0.010s, Spam Teleport 2x, Touch 3x)")
+    else
+        ToggleButton.Text = "Auto Summit: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+        notify("⛔ Auto Summit Nonaktif")
+    end
 end)
