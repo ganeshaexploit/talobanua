@@ -1,122 +1,115 @@
--- Auto Checkpoint Tester (Client) — UI modern ON/OFF
--- Kirim toggle ke server. Server yang melakukan teleport agar terhitung akurat.
--- ⚠️ Hanya untuk pengujian di game kamu sendiri.
+-- ⚡ Auto Summit Brutal UI by Ganesha Exploit
+-- Final FIX: Tanpa bug duduk, checkpoint lebih akurat
 
+--=== Services ===--
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UIS = game:GetService("UserInputService")
-
+local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
-local REMOTE_FOLDER = ReplicatedStorage:WaitForChild("GaneshaAutoTest")
-local ToggleEvent = REMOTE_FOLDER:WaitForChild("Toggle")
-local LoopEvent = REMOTE_FOLDER:WaitForChild("Loop")
 
--- === State UI ===
-local enabled = false
+--=== Checkpoints ===--
+local checkpoints = {
+    Vector3.new(-739.06, 23.46, 582.03),
+    Vector3.new(11.84, 235.38, -211.59),
+    Vector3.new(-272.35, 441.51, 1138.29),
+    Vector3.new(-88.42, 1058.56, 1954.43),
+    Vector3.new(-23.41, 1513.04, 2129.53),
+    Vector3.new(-503.27, 1769.35, 2510.01),
+    Vector3.new(-3079.68, 3317.34, 3134.89),
+    Vector3.new(-3369.05, 4010.81, 3197.62),
+    Vector3.new(-3650.31, 5058.53, 3694.24)
+}
+
+--=== Notifikasi ===--
+local function notify(msg)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "Auto Summit by Ganesha Exploit",
+            Text = msg,
+            Duration = 4
+        })
+    end)
+end
+
+--=== Brutal Teleport ===--
+local function brutalTeleport(hrp, targetPos)
+    if not hrp then return end
+    -- langsung snap ke posisi + kecil offset supaya kena checkpoint
+    hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+    task.wait(0.15) -- kasih jeda biar server hitbox checkpoint sempat register
+    hrp.CFrame = CFrame.new(targetPos) -- turun tepat ke checkpoint
+end
+
+--=== Variabel kontrol ===--
+local autoSummitEnabled = false
 local loopCount = 0
 
--- === UI Modern ===
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AutoCheckpointUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+--=== Loop utama ===--
+task.spawn(function()
+    while true do
+        if autoSummitEnabled then
+            local char = player.Character or player.CharacterAdded:Wait()
+            local hrp = char:WaitForChild("HumanoidRootPart")
+            local hum = char:WaitForChild("Humanoid")
 
-local Card = Instance.new("Frame")
-Card.Size = UDim2.new(0, 260, 0, 90)
-Card.Position = UDim2.new(0.05, 0, 0.18, 0)
-Card.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-Card.BorderSizePixel = 0
-Card.Active = true
-Card.Draggable = true
-Card.Parent = ScreenGui
-local cardCorner = Instance.new("UICorner", Card); cardCorner.CornerRadius = UDim.new(0, 16)
+            for i, pos in ipairs(checkpoints) do
+                if not autoSummitEnabled then break end
+                brutalTeleport(hrp, pos)
+                task.wait(0.5) -- delay antar checkpoint
 
--- Soft shadow (opsional)
-local Shadow = Instance.new("ImageLabel")
-Shadow.Name = "Shadow"
-Shadow.ZIndex = -1
-Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-Shadow.Position = UDim2.new(0.5, 0, 0.5, 4)
-Shadow.Size = UDim2.new(1, 30, 1, 30)
-Shadow.BackgroundTransparency = 1
-Shadow.Image = "rbxassetid://1316045217"
-Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-Shadow.ImageTransparency = 0.4
-Shadow.ScaleType = Enum.ScaleType.Slice
-Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-Shadow.Parent = Card
-
-local Title = Instance.new("TextLabel")
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, -16, 0, 24)
-Title.Position = UDim2.new(0, 8, 0, 8)
-Title.Text = "🧪 Auto Checkpoint Tester"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-Title.Parent = Card
-
-local Status = Instance.new("TextLabel")
-Status.BackgroundTransparency = 1
-Status.Size = UDim2.new(0.6, -16, 0, 22)
-Status.Position = UDim2.new(0, 8, 0, 34)
-Status.Text = "Status: OFF"
-Status.TextColor3 = Color3.fromRGB(180, 180, 180)
-Status.Font = Enum.Font.Gotham
-Status.TextSize = 14
-Status.TextXAlignment = Enum.TextXAlignment.Left
-Status.Parent = Card
-
-local Counter = Instance.new("TextLabel")
-Counter.BackgroundTransparency = 1
-Counter.Size = UDim2.new(0.4, -8, 0, 22)
-Counter.Position = UDim2.new(0.6, 0, 0, 34)
-Counter.Text = "Loop: 0"
-Counter.TextColor3 = Color3.fromRGB(180, 180, 180)
-Counter.Font = Enum.Font.Gotham
-Counter.TextSize = 14
-Counter.TextXAlignment = Enum.TextXAlignment.Right
-Counter.Parent = Card
-
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(1, -16, 0, 32)
-ToggleBtn.Position = UDim2.new(0, 8, 1, -40)
-ToggleBtn.Text = "Start (K)"
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextSize = 16
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-ToggleBtn.AutoButtonColor = true
-ToggleBtn.Parent = Card
-local btnCorner = Instance.new("UICorner", ToggleBtn); btnCorner.CornerRadius = UDim.new(0, 10)
-
-local function refreshUI()
-    Status.Text = "Status: " .. (enabled and "ON" or "OFF")
-    ToggleBtn.Text = enabled and "Stop (K)" or "Start (K)"
-    ToggleBtn.BackgroundColor3 = enabled and Color3.fromRGB(50, 200, 80) or Color3.fromRGB(200, 50, 50)
-    Counter.Text = "Loop: " .. tostring(loopCount)
-end
-
-local function setEnabled(v: boolean)
-    enabled = v
-    ToggleEvent:FireServer(enabled)
-    refreshUI()
-end
-
-ToggleBtn.MouseButton1Click:Connect(function()
-    setEnabled(not enabled)
-end)
-
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.K then
-        setEnabled(not enabled)
+                if i == #checkpoints then
+                    task.wait(3) -- summit terakhir sebelum reset
+                    hum.Health = 0
+                    player.CharacterAdded:Wait():WaitForChild("HumanoidRootPart")
+                    loopCount += 1
+                    notify("✅ Loop #" .. loopCount .. " selesai")
+                end
+            end
+        end
+        task.wait(0.1)
     end
 end)
 
-LoopEvent.OnClientEvent:Connect(function(serverLoopCount: number)
-    loopCount = serverLoopCount
-    refreshUI()
-end)
+--=== UI Modern ===--
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local ToggleButton = Instance.new("TextButton")
 
-refreshUI()
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Frame.BackgroundTransparency = 0.2
+Frame.BorderSizePixel = 0
+Frame.Position = UDim2.new(0.05, 0, 0.2, 0)
+Frame.Size = UDim2.new(0, 180, 0, 60)
+Frame.Active = true
+Frame.Draggable = true
+
+local UICorner = Instance.new("UICorner", Frame)
+UICorner.CornerRadius = UDim.new(0, 12)
+
+ToggleButton.Parent = Frame
+ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleButton.Size = UDim2.new(1, -10, 1, -10)
+ToggleButton.Position = UDim2.new(0, 5, 0, 5)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Text = "Auto Summit: OFF"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 16
+
+local UICornerBtn = Instance.new("UICorner", ToggleButton)
+UICornerBtn.CornerRadius = UDim.new(0, 10)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    autoSummitEnabled = not autoSummitEnabled
+    if autoSummitEnabled then
+        ToggleButton.Text = "Auto Summit: ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 85)
+        notify("⚡ Auto Summit Aktif")
+    else
+        ToggleButton.Text = "Auto Summit: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+        notify("⛔ Auto Summit Nonaktif")
+    end
+end)
