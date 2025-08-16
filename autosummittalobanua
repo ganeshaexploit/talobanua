@@ -1,0 +1,122 @@
+-- Auto Checkpoint Tester (Client) — UI modern ON/OFF
+-- Kirim toggle ke server. Server yang melakukan teleport agar terhitung akurat.
+-- ⚠️ Hanya untuk pengujian di game kamu sendiri.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local REMOTE_FOLDER = ReplicatedStorage:WaitForChild("GaneshaAutoTest")
+local ToggleEvent = REMOTE_FOLDER:WaitForChild("Toggle")
+local LoopEvent = REMOTE_FOLDER:WaitForChild("Loop")
+
+-- === State UI ===
+local enabled = false
+local loopCount = 0
+
+-- === UI Modern ===
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AutoCheckpointUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local Card = Instance.new("Frame")
+Card.Size = UDim2.new(0, 260, 0, 90)
+Card.Position = UDim2.new(0.05, 0, 0.18, 0)
+Card.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Card.BorderSizePixel = 0
+Card.Active = true
+Card.Draggable = true
+Card.Parent = ScreenGui
+local cardCorner = Instance.new("UICorner", Card); cardCorner.CornerRadius = UDim.new(0, 16)
+
+-- Soft shadow (opsional)
+local Shadow = Instance.new("ImageLabel")
+Shadow.Name = "Shadow"
+Shadow.ZIndex = -1
+Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+Shadow.Position = UDim2.new(0.5, 0, 0.5, 4)
+Shadow.Size = UDim2.new(1, 30, 1, 30)
+Shadow.BackgroundTransparency = 1
+Shadow.Image = "rbxassetid://1316045217"
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.ImageTransparency = 0.4
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+Shadow.Parent = Card
+
+local Title = Instance.new("TextLabel")
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, -16, 0, 24)
+Title.Position = UDim2.new(0, 8, 0, 8)
+Title.Text = "🧪 Auto Checkpoint Tester"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.Parent = Card
+
+local Status = Instance.new("TextLabel")
+Status.BackgroundTransparency = 1
+Status.Size = UDim2.new(0.6, -16, 0, 22)
+Status.Position = UDim2.new(0, 8, 0, 34)
+Status.Text = "Status: OFF"
+Status.TextColor3 = Color3.fromRGB(180, 180, 180)
+Status.Font = Enum.Font.Gotham
+Status.TextSize = 14
+Status.TextXAlignment = Enum.TextXAlignment.Left
+Status.Parent = Card
+
+local Counter = Instance.new("TextLabel")
+Counter.BackgroundTransparency = 1
+Counter.Size = UDim2.new(0.4, -8, 0, 22)
+Counter.Position = UDim2.new(0.6, 0, 0, 34)
+Counter.Text = "Loop: 0"
+Counter.TextColor3 = Color3.fromRGB(180, 180, 180)
+Counter.Font = Enum.Font.Gotham
+Counter.TextSize = 14
+Counter.TextXAlignment = Enum.TextXAlignment.Right
+Counter.Parent = Card
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(1, -16, 0, 32)
+ToggleBtn.Position = UDim2.new(0, 8, 1, -40)
+ToggleBtn.Text = "Start (K)"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 16
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ToggleBtn.AutoButtonColor = true
+ToggleBtn.Parent = Card
+local btnCorner = Instance.new("UICorner", ToggleBtn); btnCorner.CornerRadius = UDim.new(0, 10)
+
+local function refreshUI()
+    Status.Text = "Status: " .. (enabled and "ON" or "OFF")
+    ToggleBtn.Text = enabled and "Stop (K)" or "Start (K)"
+    ToggleBtn.BackgroundColor3 = enabled and Color3.fromRGB(50, 200, 80) or Color3.fromRGB(200, 50, 50)
+    Counter.Text = "Loop: " .. tostring(loopCount)
+end
+
+local function setEnabled(v: boolean)
+    enabled = v
+    ToggleEvent:FireServer(enabled)
+    refreshUI()
+end
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    setEnabled(not enabled)
+end)
+
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.K then
+        setEnabled(not enabled)
+    end
+end)
+
+LoopEvent.OnClientEvent:Connect(function(serverLoopCount: number)
+    loopCount = serverLoopCount
+    refreshUI()
+end)
+
+refreshUI()
